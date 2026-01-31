@@ -1,34 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { UnitType, BMIResult, HistoryEntry, BMICategory } from './types';
-import { calculateBMI, formatDate } from './utils';
+import { UnitType, BMIResult, Gender, BMICategory } from './types';
+import { calculateBMI } from './utils';
 import BMIGauge from './components/BMIGauge';
-import InfoTooltip from './components/InfoTooltip';
 
 const App: React.FC = () => {
   const [unitType, setUnitType] = useState<UnitType>(UnitType.METRIC);
+  const [age, setAge] = useState<string>('25');
+  const [gender, setGender] = useState<Gender>(Gender.MALE);
   const [weight, setWeight] = useState<string>('');
   const [height, setHeight] = useState<string>('');
   const [heightInch, setHeightInch] = useState<string>('');
   const [result, setResult] = useState<BMIResult | null>(null);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [error, setError] = useState<string>('');
-  const [darkMode, setDarkMode] = useState<boolean>(false);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
-
-  // Load history from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('bmi_history');
-    if (saved) setHistory(JSON.parse(saved));
-    
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setDarkMode(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('bmi_history', JSON.stringify(history));
-  }, [history]);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
@@ -38,285 +24,259 @@ const App: React.FC = () => {
     const w = parseFloat(weight);
     const h = parseFloat(height);
     const hInch = parseFloat(heightInch || '0');
+    const a = parseInt(age);
 
-    if (isNaN(w) || isNaN(h)) {
-      setError('Enter valid numbers');
+    if (isNaN(w) || isNaN(h) || isNaN(a)) {
+      setError('Please fill all fields with valid numbers.');
       return;
     }
 
     setError('');
     setIsCalculating(true);
+    setResult(null); // Clear previous result to trigger needle reset
     
+    // Simulate calculation time so the user sees the arrow "readying" itself
     setTimeout(() => {
-      const calculatedResult = calculateBMI(w, h, unitType, hInch);
-      if (calculatedResult) {
-        setResult(calculatedResult);
-        const newEntry: HistoryEntry = {
-          id: Date.now().toString(),
-          date: formatDate(new Date()),
-          bmi: calculatedResult.value,
-          category: calculatedResult.category,
-          weight: w,
-          unit: unitType === UnitType.METRIC ? 'kg' : 'lb'
-        };
-        setHistory(prev => [newEntry, ...prev].slice(0, 5));
-      }
+      const res = calculateBMI(w, h, unitType, hInch);
+      setResult(res);
       setIsCalculating(false);
     }, 600);
   };
 
-  const removeHistory = (id: string) => {
-    setHistory(prev => prev.filter(item => item.id !== id));
+  const handleClear = () => {
+    setWeight('');
+    setHeight('');
+    setHeightInch('');
+    setAge('25');
+    setResult(null);
+    setError('');
   };
 
   return (
-    <div className={`min-h-screen py-8 px-4 transition-all duration-500 ${darkMode ? 'bg-[#0f172a] text-white' : 'bg-[#f8fafc] text-slate-900'}`}>
+    <div className={`min-h-screen py-8 md:py-16 px-4 transition-all duration-500 font-sans ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 opacity-30">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-400 rounded-full blur-[140px] animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      {/* Dynamic Mesh Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className={`absolute top-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full blur-[160px] opacity-20 transition-all duration-[2000ms] ${result ? result.color.replace('text', 'bg') : 'bg-emerald-400'}`}></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500 rounded-full blur-[140px] opacity-10"></div>
       </div>
 
       <div className="max-w-6xl mx-auto">
-        <header className="flex items-center justify-between mb-12">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-emerald-500 rounded-2xl shadow-xl shadow-emerald-500/30 transform hover:rotate-12 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"/></svg>
+        <header className="flex items-center justify-between mb-8 md:mb-12">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-500/20 transform hover:rotate-6 transition-transform">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M20.42 4.58a5 5 0 0 0-7.07 0l-1.35 1.35-1.35-1.35a5 5 0 0 0-7.07 7.07l1.35 1.35 7.07 7.07 7.07-7.07 1.35-1.35a5 5 0 0 0 0-7.07z"/></svg>
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight">Vitality<span className="text-emerald-500">BMI</span></h1>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Premium Health Insights</p>
+              <h1 className="text-3xl font-black tracking-tighter">VITALITY<span className="text-emerald-600 italic">CALC</span></h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Advanced Diagnostics</p>
             </div>
           </div>
-          
           <button 
-            onClick={() => setDarkMode(!darkMode)}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-slate-100 dark:border-slate-700 hover:scale-110 transition-all"
+            onClick={() => setDarkMode(!darkMode)} 
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-slate-100 dark:border-slate-700 hover:scale-110 transition-all text-xl"
           >
             {darkMode ? '🌙' : '☀️'}
           </button>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
-          {/* Left Column: Input & History */}
-          <div className="lg:col-span-4 space-y-8">
-            <section className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700">
-              <h2 className="text-xl font-bold mb-6 flex items-center">
-                <span className="w-1.5 h-6 bg-emerald-500 rounded-full mr-3"></span>
-                Input Data
-              </h2>
+          {/* Left Panel: Inputs */}
+          <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800/50 flex flex-col">
+            <div className="flex bg-slate-100 dark:bg-slate-950 p-2">
+              {Object.values(UnitType).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => { setUnitType(type); handleClear(); }}
+                  className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${unitType === type ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  {type.split(' ')[0]}
+                </button>
+              ))}
+            </div>
 
-              <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl mb-8">
-                {Object.values(UnitType).map(type => (
-                  <button 
-                    key={type}
-                    onClick={() => setUnitType(type)}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${unitType === type ? 'bg-white dark:bg-slate-700 shadow-lg text-emerald-600 dark:text-emerald-400' : 'text-slate-500 opacity-60'}`}
-                  >
-                    {type.charAt(0) + type.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
-
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-tighter">Height {unitType === UnitType.METRIC ? '(cm)' : '(ft)'}</label>
-                  <input 
-                    type="number" 
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-4 ring-emerald-500/10 transition-all font-bold text-lg"
-                    placeholder="0"
-                  />
+            <div className="p-8 md:p-10 space-y-6 flex-1">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-black text-slate-500 dark:text-slate-400 uppercase">Profile Data</label>
+                  <span className="h-px flex-1 bg-slate-100 dark:bg-slate-800 mx-4"></span>
                 </div>
 
-                {unitType === UnitType.IMPERIAL && (
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-tighter">Inches (in)</label>
+                    <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Age</label>
+                    <input 
+                      type="number" 
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border-2 border-transparent focus:border-emerald-500 rounded-xl font-bold transition-all outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Gender</label>
+                    <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-xl">
+                      {Object.values(Gender).map(g => (
+                        <button 
+                          key={g}
+                          onClick={() => setGender(g)}
+                          className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all ${gender === g ? 'bg-white dark:bg-slate-800 text-emerald-600 shadow-sm' : 'text-slate-400'}`}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Height ({unitType === UnitType.METRIC ? 'cm' : 'ft'})</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent focus:border-emerald-500 rounded-xl font-bold text-lg outline-none transition-all"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">{unitType === UnitType.METRIC ? 'CM' : 'FT'}</span>
+                  </div>
+                </div>
+
+                {unitType === UnitType.US && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Inches (in)</label>
                     <input 
                       type="number" 
                       value={heightInch}
                       onChange={(e) => setHeightInch(e.target.value)}
-                      className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-4 ring-emerald-500/10 transition-all font-bold text-lg"
+                      className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent focus:border-emerald-500 rounded-xl font-bold text-lg outline-none transition-all"
                       placeholder="0"
                     />
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-tighter">Weight {unitType === UnitType.METRIC ? '(kg)' : '(lb)'}</label>
-                  <input 
-                    type="number" 
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-4 ring-emerald-500/10 transition-all font-bold text-lg"
-                    placeholder="0"
-                  />
+                  <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Weight ({unitType === UnitType.METRIC ? 'kg' : 'lb'})</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent focus:border-emerald-500 rounded-xl font-bold text-lg outline-none transition-all"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">{unitType === UnitType.METRIC ? 'KG' : 'LB'}</span>
+                  </div>
                 </div>
+              </div>
 
+              <div className="flex flex-col gap-3 pt-4">
                 <button 
                   onClick={handleCalculate}
                   disabled={isCalculating}
-                  className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-lg shadow-2xl shadow-emerald-500/40 transform active:scale-95 transition-all disabled:opacity-50"
+                  className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xl shadow-2xl shadow-emerald-600/20 transform active:scale-95 transition-all flex items-center justify-center space-x-3"
                 >
-                  {isCalculating ? 'Computing...' : 'Calculate Insight'}
+                  <span className={isCalculating ? 'animate-pulse' : ''}>{isCalculating ? 'ANALYZING...' : 'CALCULATE'}</span>
+                  {!isCalculating && <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>}
+                </button>
+                <button 
+                  onClick={handleClear}
+                  className="w-full py-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xs uppercase tracking-widest transition-colors"
+                >
+                  Reset Measurements
                 </button>
               </div>
-            </section>
 
-            {/* History Card */}
-            <section className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700">
-              <h2 className="text-xl font-bold mb-6 flex items-center justify-between">
-                <span className="flex items-center">
-                  <span className="w-1.5 h-6 bg-blue-500 rounded-full mr-3"></span>
-                  Recent Logs
-                </span>
-                <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full text-slate-400 uppercase">Last 5</span>
-              </h2>
-              <div className="space-y-4">
-                {history.length === 0 ? (
-                  <p className="text-center py-8 text-slate-400 text-sm italic">No records yet.</p>
-                ) : (
-                  history.map(item => (
-                    <div key={item.id} className="group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl transition-all hover:translate-x-1">
-                      <div>
-                        <div className="text-sm font-black">{item.bmi} BMI</div>
-                        <div className="text-[10px] text-slate-400 font-bold uppercase">{item.date}</div>
+              {error && (
+                <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 p-4 rounded-xl text-xs font-black animate-shake text-center border border-rose-100 dark:border-rose-900/30">
+                  {error}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel: High-Performance Gauge & Results */}
+          <div className="lg:col-span-7 flex flex-col">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl flex-1 border border-slate-100 dark:border-slate-800/50 flex flex-col">
+              <div className="bg-emerald-600 dark:bg-emerald-800 px-8 py-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-white leading-none">Diagnostic Result</h2>
+                  <p className="text-[10px] font-bold text-emerald-100/60 uppercase tracking-widest mt-1">Real-time health telemetry</p>
+                </div>
+                <button className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all text-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                </button>
+              </div>
+
+              <div className="flex-1 p-8 md:p-12 flex flex-col items-center justify-center space-y-8">
+                {/* We ALWAYS render the gauge so the needle can be seen "going" (swinging) */}
+                <div className="w-full transform transition-all duration-700">
+                  <BMIGauge value={result?.value ?? 15} isCalculating={isCalculating} />
+                </div>
+
+                <div className={`text-center space-y-4 transition-all duration-700 ${result && !isCalculating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                  {result && (
+                    <>
+                      <div className="inline-flex items-center px-6 py-2 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+                        <span className={`text-3xl font-black ${result.color} mr-3`}>{result.category}</span>
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${result.color.replace('text', 'bg')}`}></div>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${
-                          item.category === BMICategory.NORMAL ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'
-                        }`}>
-                          {item.category}
-                        </span>
-                        <button onClick={() => removeHistory(item.id)} className="opacity-0 group-hover:opacity-100 p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition-all">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        </button>
+                      
+                      <div className="max-w-md mx-auto p-6 rounded-3xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50 italic text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                        "{result.description}"
                       </div>
-                    </div>
-                  ))
+                    </>
+                  )}
+                </div>
+
+                {!result && !isCalculating && (
+                  <div className="text-center py-10 opacity-30">
+                    <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Telemetry Offline</p>
+                    <p className="text-xs text-slate-400 mt-1">Calculations will appear here</p>
+                  </div>
+                )}
+                
+                {isCalculating && (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  </div>
                 )}
               </div>
-            </section>
-          </div>
-
-          {/* Right Column: Dynamic Results */}
-          <div className="lg:col-span-8">
-            {!result ? (
-              <div className="h-full min-h-[500px] flex flex-col items-center justify-center bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border-2 border-dashed border-slate-100 dark:border-slate-700 opacity-50 group">
-                <div className="w-24 h-24 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                </div>
-                <h3 className="text-xl font-bold text-slate-400">Awaiting Measurements</h3>
-                <p className="text-slate-400 text-sm mt-2">Enter your details to see your health dashboard</p>
-              </div>
-            ) : (
-              <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-700">
-                {/* Score Hero */}
-                <section className="bg-white dark:bg-slate-800 p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 relative overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-32 h-32 blur-[80px] opacity-20 bg-current ${result.color}`}></div>
-                  
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-black text-slate-400 uppercase tracking-widest">Calculated Score</span>
-                        <InfoTooltip />
-                      </div>
-                      <div className="flex items-end space-x-4">
-                        <span className={`text-8xl font-black tracking-tighter leading-none ${result.color}`}>
-                          {result.value}
-                        </span>
-                        <div className="pb-2">
-                          <span className={`text-xl font-black uppercase ${result.color}`}>{result.category}</span>
-                          <p className="text-sm text-slate-400 font-bold">Health Status</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="md:w-1/2">
-                      <BMIGauge value={result.value} />
-                    </div>
-                  </div>
-                </section>
-
-                {/* Detailed Insights Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Ideal Range Card */}
-                  <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-700">
-                    <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center">
-                      <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                      Target Weight Range
-                    </h4>
-                    <div className="text-3xl font-black text-emerald-500 mb-2">
-                      {result.idealWeightRange.min} - {result.idealWeightRange.max} 
-                      <span className="text-lg ml-1 text-slate-400 font-medium">
-                        {unitType === UnitType.METRIC ? 'kg' : 'lb'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                      Maintaining your weight within this window significantly reduces long-term health risks.
-                    </p>
-                  </div>
-
-                  {/* Recommendation Card */}
-                  <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
-                    <div className="absolute top-[-20%] right-[-10%] w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl"></div>
-                    <h4 className="text-sm font-black text-emerald-400 uppercase tracking-widest mb-6 flex items-center">
-                      <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                      Vitality Advice
-                    </h4>
-                    <p className="text-lg font-bold leading-snug mb-4">
-                      {result.description}
-                    </p>
-                    <div className="flex space-x-2">
-                       <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-wider">Nutrition</span>
-                       <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-wider">Movement</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Progress Visualizer */}
-                <section className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-8">
-                    <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Zone Proximity</h4>
-                    <div className="flex space-x-4 text-[10px] font-black uppercase">
-                      <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-sky-400 mr-1.5"></span> Under</div>
-                      <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-emerald-400 mr-1.5"></span> Optimal</div>
-                      <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-rose-400 mr-1.5"></span> High</div>
-                    </div>
-                  </div>
-                  <div className="relative h-4 w-full bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
-                    <div className="absolute inset-y-0 left-[25%] right-[45%] bg-emerald-500/10 border-x-2 border-emerald-500/20"></div>
-                    <div 
-                      className={`absolute inset-y-0 left-0 transition-all duration-1000 ease-out flex items-center justify-end pr-2 font-black text-[9px] text-white rounded-full ${result.color.replace('text', 'bg')}`}
-                      style={{ width: `${(result.value / 45) * 100}%` }}
-                    >
-                      {result.value}
-                    </div>
-                  </div>
-                  <div className="flex justify-between mt-3 text-[10px] font-bold text-slate-300">
-                    <span>10</span>
-                    <span>20</span>
-                    <span>30</span>
-                    <span>40</span>
-                    <span>50+</span>
-                  </div>
-                </section>
-              </div>
-            )}
+            </div>
           </div>
         </div>
+
+        <footer className="mt-12 flex flex-col items-center space-y-4">
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medical Grade Accuracy</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Privacy Protected</span>
+            </div>
+          </div>
+          <p className="text-slate-300 dark:text-slate-700 text-[10px] font-bold uppercase tracking-[0.5em]">© 2024 VITALITY BIOMETRICS</p>
+        </footer>
       </div>
 
       <style>{`
-        @keyframes pulse-gentle {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.1); }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
         }
-        .animate-pulse {
-          animation: pulse-gentle 8s infinite ease-in-out;
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
         }
       `}</style>
     </div>
