@@ -1,7 +1,12 @@
 
 export enum UnitType {
   METRIC = 'METRIC',
-  IMPERIAL = 'IMPERIAL'
+  US = 'US'
+}
+
+export enum Gender {
+  MALE = 'Male',
+  FEMALE = 'Female'
 }
 
 export enum BMICategory {
