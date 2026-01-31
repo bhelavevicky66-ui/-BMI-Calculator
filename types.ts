@@ -16,4 +16,14 @@ export interface BMIResult {
   category: BMICategory;
   color: string;
   description: string;
+  idealWeightRange: { min: number; max: number };
+}
+
+export interface HistoryEntry {
+  id: string;
+  date: string;
+  bmi: number;
+  category: BMICategory;
+  weight: number;
+  unit: string;
 }

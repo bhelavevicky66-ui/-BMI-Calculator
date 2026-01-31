@@ -10,27 +10,33 @@ const BMIGauge: React.FC<BMIGaugeProps> = ({ value }) => {
   const pos = getGaugePosition(value);
 
   return (
-    <div className="w-full mt-6 space-y-2">
-      <div className="flex justify-between text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-        <span>Underweight</span>
-        <span>Healthy</span>
-        <span>Overweight</span>
-        <span>Obese</span>
-      </div>
-      <div className="relative h-2 w-full rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex">
-        <div className="h-full bg-blue-400" style={{ width: '15%' }}></div>
-        <div className="h-full bg-emerald-400" style={{ width: '30%' }}></div>
-        <div className="h-full bg-amber-400" style={{ width: '25%' }}></div>
-        <div className="h-full bg-rose-400" style={{ width: '30%' }}></div>
-      </div>
-      <div className="relative w-full h-4">
+    <div className="w-full space-y-4">
+      <div className="relative h-4 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex shadow-inner">
+        <div className="h-full bg-sky-400/40" style={{ width: '15%' }}></div>
+        <div className="h-full bg-emerald-400/40 border-x border-white/20 dark:border-black/10" style={{ width: '30%' }}></div>
+        <div className="h-full bg-amber-400/40" style={{ width: '25%' }}></div>
+        <div className="h-full bg-rose-400/40" style={{ width: '30%' }}></div>
+        
+        {/* Indicator */}
         <div 
-          className="absolute -top-6 transition-all duration-700 ease-out flex flex-col items-center" 
-          style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
+          className="absolute inset-y-0 w-2 bg-slate-900 dark:bg-white rounded-full shadow-lg transition-all duration-1000 ease-out z-10"
+          style={{ left: `calc(${pos}% - 4px)` }}
         >
-          <div className="w-1 h-4 bg-slate-800 dark:bg-slate-200 rounded-full"></div>
-          <span className="text-xs font-bold mt-1 dark:text-slate-200">{value}</span>
+          <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-slate-900 dark:border-t-white"></div>
         </div>
+      </div>
+      
+      <div className="flex justify-between px-1">
+        {[
+          { label: 'Under', color: 'text-sky-500' },
+          { label: 'Ideal', color: 'text-emerald-500 font-black' },
+          { label: 'Over', color: 'text-amber-500' },
+          { label: 'Obese', color: 'text-rose-500' }
+        ].map((item, idx) => (
+          <span key={idx} className={`text-[9px] uppercase tracking-widest font-bold ${item.color}`}>
+            {item.label}
+          </span>
+        ))}
       </div>
     </div>
   );

@@ -10,16 +10,21 @@ export const calculateBMI = (
   if (weight <= 0 || height <= 0) return null;
 
   let bmiValue: number;
+  let idealMin: number;
+  let idealMax: number;
 
   if (unitType === UnitType.METRIC) {
-    // weight in kg, height in cm
     const heightInMeters = height / 100;
     bmiValue = weight / (heightInMeters * heightInMeters);
+    // Ideal range is BMI 18.5 to 24.9
+    idealMin = 18.5 * (heightInMeters * heightInMeters);
+    idealMax = 24.9 * (heightInMeters * heightInMeters);
   } else {
-    // weight in lbs, height in feet + inches
     const totalInches = (height * 12) + heightInch;
     if (totalInches <= 0) return null;
     bmiValue = 703 * (weight / (totalInches * totalInches));
+    idealMin = (18.5 * (totalInches * totalInches)) / 703;
+    idealMax = (24.9 * (totalInches * totalInches)) / 703;
   }
 
   const roundedBmi = parseFloat(bmiValue.toFixed(1));
@@ -29,34 +34,46 @@ export const calculateBMI = (
 
   if (roundedBmi < 18.5) {
     category = BMICategory.UNDERWEIGHT;
-    color = 'text-blue-500';
-    description = 'Your BMI indicates you are in the underweight range. It is important to consult with a healthcare professional to discuss your overall health and nutrition.';
+    color = 'text-sky-500';
+    description = 'Focus on nutrient-dense foods and strength training to build healthy mass.';
   } else if (roundedBmi >= 18.5 && roundedBmi < 25) {
     category = BMICategory.NORMAL;
     color = 'text-emerald-500';
-    description = 'Congratulations! Your BMI is within the healthy range. Maintaining a balanced diet and regular physical activity are key to staying here.';
+    description = 'Excellent! Your weight is perfectly balanced for your height.';
   } else if (roundedBmi >= 25 && roundedBmi < 30) {
     category = BMICategory.OVERWEIGHT;
-    color = 'text-amber-500';
-    description = 'Your BMI indicates you are in the overweight range. Small changes to your diet and activity level can have a positive impact on your health.';
+    color = 'text-orange-500';
+    description = 'Consider increasing daily activity and monitoring portion sizes.';
   } else {
     category = BMICategory.OBESE;
     color = 'text-rose-500';
-    description = 'Your BMI indicates you are in the obese range. Focusing on sustainable lifestyle changes and seeking guidance from health professionals can help manage health risks.';
+    description = 'Prioritize heart health and consult a specialist for a sustainable plan.';
   }
 
   return {
     value: roundedBmi,
     category,
     color,
-    description
+    description,
+    idealWeightRange: {
+      min: parseFloat(idealMin.toFixed(1)),
+      max: parseFloat(idealMax.toFixed(1))
+    }
   };
 };
 
 export const getGaugePosition = (bmi: number): number => {
-  // Map BMI 15-40 to 0-100%
   const min = 15;
   const max = 40;
   const percentage = ((bmi - min) / (max - min)) * 100;
   return Math.min(Math.max(percentage, 0), 100);
+};
+
+export const formatDate = (date: Date): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
 };
